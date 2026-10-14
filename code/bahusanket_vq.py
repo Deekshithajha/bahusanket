@@ -21,7 +21,7 @@ import torch.nn.functional as F
 
 import bahusanket_lib as B
 
-IN_DIM = B.N_POINTS * 2       # 103 points x (x, y)
+IN_DIM = B.N_POINTS * 2       # 103 points x (x, y); bahusanket_layout.apply() updates it for other layouts
 DOWN = 4                      # frames per code
 
 
@@ -40,8 +40,9 @@ def resnet1d(width, dilations=(9, 3, 1)):
 
 
 class PoseVQVAE(nn.Module):
-    def __init__(self, in_dim=IN_DIM, width=512, code_dim=512, n_codes=512, n_down=2, mu=0.99):
+    def __init__(self, in_dim=None, width=512, code_dim=512, n_codes=512, n_down=2, mu=0.99):
         super().__init__()
+        in_dim = in_dim or IN_DIM         # read at call time, so a layout switch is picked up
         enc = [nn.Conv1d(in_dim, width, 3, padding=1), nn.ReLU()]
         for _ in range(n_down):
             enc += [nn.Conv1d(width, width, 4, stride=2, padding=1), resnet1d(width)]
