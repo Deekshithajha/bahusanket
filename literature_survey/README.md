@@ -39,12 +39,17 @@ Papers BahuSanket has used or built on, with what each one gave the project. PDF
 | 11 | **MediaPipe: A Framework for Building Perception Pipelines** (Lugaresi et al.) | CVPR 2019 workshop | [arXiv 1906.08172](https://arxiv.org/abs/1906.08172) | iSign poses are MediaPipe Holistic keypoints (543 points), which we trim to 103. |
 | 12 | **pose-format: Library for Viewing, Augmenting, and Handling .pose Files** (Moryossef & Müller) | arXiv 2023 | [arXiv 2310.09066](https://arxiv.org/abs/2310.09066) | The library and file format used to read iSign `.pose` files (`code/isign_stream.py`). |
 
-## Not yet in `papers/` (not on arXiv, or the site is not reachable from Claude's environment)
+## 6. Related ISL and multilingual work
 
-| Paper | Venue | Link | Why it matters |
+| # | Paper | Venue | Link | How it helped |
+| --- | --- | --- | --- | --- |
+| 13 | **Multilingual Sign Language Translation with Unified Datasets and Pose-Based Transformers** (Dal Bianco et al.) | WSLP 2025 (IJCNLP-AACL) | [ACL Anthology 2025.wslp-main.5](https://aclanthology.org/2025.wslp-main.5/) | Multilingual across 4 sign languages (including ISL), but translates signing to text, not text to signing. Shows the multilingual gap on the generation side. |
+
+## Not yet in `papers/` (Deekshitha to download)
+
+| Paper | Venue | Where to get it | Why it matters |
 | --- | --- | --- | --- |
-| Towards Scalable Sign Production (**SanketVaani-1K**) (Agrawal et al.) | ICVGIP 2025 | OpenReview | Rival: gloss-driven, single-language ISL production with co-articulated transitions. |
-| **A Gloss-Driven ISL Production System Using Learned Pose Representations** | IJCAI 2026 | [ijcai.org/proceedings/2026/823](https://www.ijcai.org/proceedings/2026/823) | Closest existing ISL production system (interpreter-rated 4.33/5); our main rival. |
-| Multilingual Sign Translation | ACL WSLP 2025 | to add | Multilingual, but recognition only. Shows the multilingual gap on the generation side. |
-| Multilingual Speech to ISL Translation Using Synthetic Animation (Dhanjal & Singh) | Springer 2025 | to add | English/Hindi/Punjabi to ISL avatar, rule-based rather than learned. |
-| Towards Fast and High-Quality Sign Language Production (Huang et al.) | ACM MM 2021 | to add | Source of the DTW-MJE metric we use for all scoring. |
+| **Towards Scalable Sign Production: Leveraging Co-Articulated Gloss Dictionary for Fluid Sign Synthesis** (SanketVaani-1K; Agrawal, Mazumder, Jawahar, Namboodiri) | ICVGIP 2025 | [IIIT Hyderabad PDF](https://cdn.iiit.ac.in/cdn/cvit.iiit.ac.in/images/ConferencePapers/2025/Sign_LangSynthesis_ICVGIP.pdf) | Rival: gloss-driven, single-language ISL production with co-articulated transitions. |
+| **A Gloss-driven Indian Sign Language Production System Using Learned Pose Representations** (Patra, Maitra, Punyeshwarananda, Samanta) | IJCAI 2026 | [IJCAI PDF](https://www.ijcai.org/proceedings/2026/0823.pdf) | Closest existing ISL production system (Sign-Pose-VQ-VAE, interpreter-rated 4.33/5); our main rival. |
+| **Towards Fast and High-Quality Sign Language Production** (Huang et al.) | ACM MM 2021, pp. 3172-3181 | ACM Digital Library (search the title; PES library login) | Introduced the DTW-MJE metric we use for scoring. |
+| Multilingual speech to ISL with synthetic animation (Dhanjal & Singh) | Springer 2025 | Not found online yet; exact title needed | English/Hindi/Punjabi to ISL avatar, rule-based rather than learned. |
