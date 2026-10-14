@@ -16,6 +16,7 @@ Papers BahuSanket has used or built on, with what each one gave the project. PDF
 | 03 | **Signing at Scale: Learning to Co-Articulate Signs for Large-Scale Photo-Realistic SLP** (Saunders et al.) | CVPR 2022 | [arXiv 2203.15354](https://arxiv.org/abs/2203.15354) | Shows how to learn smooth transitions (co-articulation) between signs, the core of our "continuous" goal. Cited in the Review 1 survey. |
 | 04 | **Ham2Pose: Animating Sign Language Notation into Pose Sequences** (Shalev-Arkushin et al.) | CVPR 2023 | [arXiv 2211.13613](https://arxiv.org/abs/2211.13613) | Language-agnostic pose generation from HamNoSys notation; a reference point for pose-generation metrics. Cited in the Review 1 survey. |
 | 07 | **T2S-GPT: Dynamic Vector Quantization for Autoregressive Sign Language Production from Text** (Yin et al.) | ACL 2024 | [arXiv 2406.07119](https://arxiv.org/abs/2406.07119) | Evidence that discrete pose codes beat Progressive Transformers on sign language (PHOENIX14T BLEU-4 11.87 vs 4.38). Main reason we moved to pose codes (notebooks 05-06). |
+| 17 | **Towards Fast and High-Quality Sign Language Production** (Huang, Pan, Zhao, Tian) | ACM MM 2021, pp. 3172-3181 | [doi 10.1145/3474085.3475463](https://doi.org/10.1145/3474085.3475463) | Names the DTW-MJE metric (Section 4.2: align prediction and ground truth with Dynamic Time Warping, then take Mean Joint Error) that we use for all scoring. Also a fast non-autoregressive alternative to Progressive Transformers. |
 
 ## 3. Discrete pose codes (VQ-VAE + GPT)
 
@@ -52,5 +53,4 @@ Papers BahuSanket has used or built on, with what each one gave the project. PDF
 
 | Paper | Venue | Where to get it | Why it matters |
 | --- | --- | --- | --- |
-| **Towards Fast and High-Quality Sign Language Production** (Huang et al.) | ACM MM 2021, pp. 3172-3181 | [ACM Digital Library](https://dl.acm.org) (search the title; PES library login) or [Google Scholar](https://scholar.google.com) | Introduced the DTW-MJE metric we use for scoring. |
 | Multilingual speech to ISL with synthetic animation (Dhanjal & Singh) | Springer 2025 | Not found online yet; exact title needed | English/Hindi/Punjabi to ISL avatar, rule-based rather than learned. |
