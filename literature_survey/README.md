@@ -44,12 +44,13 @@ Papers BahuSanket has used or built on, with what each one gave the project. PDF
 | # | Paper | Venue | Link | How it helped |
 | --- | --- | --- | --- | --- |
 | 13 | **Multilingual Sign Language Translation with Unified Datasets and Pose-Based Transformers** (Dal Bianco et al.) | WSLP 2025 (IJCNLP-AACL) | [ACL Anthology 2025.wslp-main.5](https://aclanthology.org/2025.wslp-main.5/) | Multilingual across 4 sign languages (including ISL), but translates signing to text, not text to signing. Shows the multilingual gap on the generation side. |
+| 14 | **Towards Scalable Sign Production: Leveraging Co-Articulated Gloss Dictionary for Fluid Sign Synthesis** (SanketVaani-1K; Agrawal, Mazumder, Jawahar, Namboodiri) | ICVGIP 2025 | [IIIT Hyderabad PDF](https://cdn.iiit.ac.in/cdn/cvit.iiit.ac.in/images/ConferencePapers/2025/Sign_LangSynthesis_ICVGIP.pdf) | Rival: gloss-driven, single-language ISL production with co-articulated transitions (1,000 interpreted sentences, FramePack interpolation). |
+| 15 | **A Gloss-driven Indian Sign Language Production System Using Learned Pose Representations** (Patra, Maitra, Punyeshwarananda, Samanta) | IJCAI 2026 | [ijcai.org/proceedings/2026/823](https://www.ijcai.org/proceedings/2026/823) | Closest existing ISL production system and our main rival: a Sign-Pose-VQ-VAE with separate body/hand codes, interpreter-rated 4.33/5. Gloss-driven, Hindi input. |
+| 16 | **An Automatic Conversion of Punjabi Text to Indian Sign Language** (Dhanjal & Singh) | EAI Trans. Scalable Information Systems 2020 | [EUDL](https://eudl.eu/doi/10.4108/eai.13-7-2018.165279) | Earlier rule-based Punjabi-text-to-ISL animation by the same authors as the 2025 multilingual system; shows the rule-based approach we move away from. |
 
 ## Not yet in `papers/` (Deekshitha to download)
 
 | Paper | Venue | Where to get it | Why it matters |
 | --- | --- | --- | --- |
-| **Towards Scalable Sign Production: Leveraging Co-Articulated Gloss Dictionary for Fluid Sign Synthesis** (SanketVaani-1K; Agrawal, Mazumder, Jawahar, Namboodiri) | ICVGIP 2025 | [IIIT Hyderabad PDF](https://cdn.iiit.ac.in/cdn/cvit.iiit.ac.in/images/ConferencePapers/2025/Sign_LangSynthesis_ICVGIP.pdf) | Rival: gloss-driven, single-language ISL production with co-articulated transitions. |
-| **A Gloss-driven Indian Sign Language Production System Using Learned Pose Representations** (Patra, Maitra, Punyeshwarananda, Samanta) | IJCAI 2026 | [IJCAI PDF](https://www.ijcai.org/proceedings/2026/0823.pdf) | Closest existing ISL production system (Sign-Pose-VQ-VAE, interpreter-rated 4.33/5); our main rival. |
-| **Towards Fast and High-Quality Sign Language Production** (Huang et al.) | ACM MM 2021, pp. 3172-3181 | ACM Digital Library (search the title; PES library login) | Introduced the DTW-MJE metric we use for scoring. |
+| **Towards Fast and High-Quality Sign Language Production** (Huang et al.) | ACM MM 2021, pp. 3172-3181 | [ACM Digital Library](https://dl.acm.org) (search the title; PES library login) or [Google Scholar](https://scholar.google.com) | Introduced the DTW-MJE metric we use for scoring. |
 | Multilingual speech to ISL with synthetic animation (Dhanjal & Singh) | Springer 2025 | Not found online yet; exact title needed | English/Hindi/Punjabi to ISL avatar, rule-based rather than learned. |
