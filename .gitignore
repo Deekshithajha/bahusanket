@@ -1,0 +1,35 @@
+# Data, poses and model outputs live in Google Drive (BahuSanket folder), never in git
+*.pose
+*.npz
+*.npy
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.zip
+*.tar
+*.tar.gz
+*.h5
+*.pkl
+*.mp4
+data/
+checkpoints/
+results/
+training_ready/
+wandb/
+runs/
+
+# Secrets: the Hugging Face token is pasted fresh in Colab, never saved
+.env
+*.env
+*token*
+.huggingface/
+.cache/
+
+# Python / Jupyter
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+venv/
+.DS_Store
