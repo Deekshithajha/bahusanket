@@ -23,6 +23,7 @@ Code only. Data, pose files, splits, indices and checkpoints stay in the Google 
 | `06_text_to_codes.ipynb` | Text to pose codes |
 | `make_notebook*.py` | Scripts that generate the notebooks above (edit these, then regenerate) |
 | `papers/` | Reading notes |
+| `literature_survey/` | Papers we used (PDFs) with an index of how each one helped |
 
 ## Running
 
