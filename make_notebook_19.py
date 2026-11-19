@@ -180,16 +180,25 @@ for job in jobs:
     tok, mdl = models[name]
     res = [None] * len(sents)
     order = sorted(range(len(sents)), key=lambda i: len(sents[i]))
-    for b0 in range(0, len(order), 32):
-        ix = order[b0:b0 + 32]
+    kw = dict(min_length=0, max_length=256, num_beams=5, num_return_sequences=1)
+    def gen_batch(ix):
         batch = ip.preprocess_batch([sents[i] for i in ix], src_lang=src, tgt_lang=tgt)
         enc = tok(batch, truncation=True, padding="longest", return_tensors="pt", return_attention_mask=True).to(dev)
-        kw = dict(min_length=0, max_length=256, num_beams=5, num_return_sequences=1)
         with torch.no_grad():
-            try:
-                gen = mdl.generate(**enc, use_cache=True, **kw)
-            except Exception:
-                gen = mdl.generate(**enc, use_cache=False, **kw)
+            return mdl.generate(**enc, use_cache=True, **kw)
+    bs, b0 = 16, 0
+    while b0 < len(order):
+        ix = order[b0:b0 + bs]
+        try:
+            gen = gen_batch(ix)
+        except torch.OutOfMemoryError:                   # long sentences x 5 beams: halve the batch and try again
+            torch.cuda.empty_cache()
+            if bs == 1:
+                raise
+            bs = max(1, bs // 2); print(f"    (GPU memory full: batch size now {bs})", flush=True); continue
+        b0 += len(ix)
+        if b0 % 128 < len(ix):
+            print(f"    {b0}/{len(sents)}", flush=True)
         dec = tok.batch_decode(gen, skip_special_tokens=True, clean_up_tokenization_spaces=True)
         if not looks_right(dec, tgt) and hasattr(tok, "as_target_tokenizer"):    # older tokenizer code decodes with the target vocabulary only here
             with tok.as_target_tokenizer():
@@ -197,6 +206,7 @@ for job in jobs:
         dec = ip.postprocess_batch(dec, lang=tgt)
         for i, d in zip(ix, dec):
             res[i] = d.strip()
+        del gen; torch.cuda.empty_cache()
     if not looks_right(res, tgt):
         print("WARNING: output is not in the expected script:", res[:3], flush=True)
     out.append(res)
@@ -222,8 +232,12 @@ def translate_many(requests_):
         ef = os.path.join(os.path.dirname(IT2_LIB), "it2_err.txt")
         def run_it2(pinned):
             env = dict(os.environ)
+            env["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
             if pinned:                                       # transformers 4.46 from IT2_LIB; else Colab's own transformers
                 env["PYTHONPATH"] = IT2_LIB + os.pathsep + env.get("PYTHONPATH", "")
+            else:                                            # (IndicTransToolkit lives in IT2_LIB too; put it after Colab's packages)
+                import site
+                env["PYTHONPATH"] = os.pathsep.join(site.getsitepackages() + [IT2_LIB])
             with open(ef, "w") as errf:
                 pr_ = subprocess.Popen([sys.executable, IT2_SCRIPT, jf, of], env=env, stdout=subprocess.PIPE, stderr=errf, text=True)
                 for line in pr_.stdout:
@@ -232,7 +246,7 @@ def translate_many(requests_):
             return rc, open(ef).read()[-4000:]
         rc, err = run_it2(True)
         gated = lambda e: any(k in e.lower() for k in ("gated", "restricted", "403", "401", "awaiting a review"))
-        if rc != 0 and not gated(err):
+        if rc != 0 and not gated(err) and "OutOfMemoryError" not in err:
             print("IndicTrans2 with transformers 4.46 failed; trying Colab's own transformers ...")
             rc, err2 = run_it2(False)
             err = err if rc == 0 else err + "\n\n----- second try -----\n" + err2
