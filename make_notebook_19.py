@@ -405,17 +405,21 @@ def join_jumps(seq, bounds, pres=None):
 
 JOINS = ["cut", "crossfade 6", "crossfade 10", "ease 8", "ease 16"]
 # 3 consecutive test clips from the same video = a real little paragraph
-vid_of = lambda u: str(u).rsplit("-", 1)
 pos = {}
 for i, u in enumerate(test["uids"]):
-    v, k = vid_of(u)
-    if k.isdigit():
-        pos[(v, int(k))] = i
+    m_ = re.match(r"^(.*?)[-_](\d+)$", str(u))                  # "<video id>-<clip number>"; other ids are skipped
+    if m_:
+        pos[(m_.group(1), int(m_.group(2)))] = i
+print(f"test clip ids with a clip number: {len(pos)} of {len(test['uids'])} (e.g. {[str(u) for u in test['uids'][:3]]})")
 runs, used = [], set()
 for (v, k) in sorted(pos):
     trio = [(v, k), (v, k + 1), (v, k + 2)]
     if all(t in pos for t in trio) and not any(t in used for t in trio):
         runs.append([pos[t] for t in trio]); used.update(trio)
+if len(runs) < 20:                                                # not enough real neighbours: fall back to random test sentences
+    print(f"only {len(runs)} runs of 3 consecutive clips found: using random groups of 3 test sentences instead")
+    rp = np.random.RandomState(19).permutation(len(test["uids"]))[:300]
+    runs = [rp[j:j + 3].tolist() for j in range(0, len(rp) - 2, 3)]
 runs = [runs[j] for j in sorted(np.random.RandomState(19).permutation(len(runs))[:100 if not QUICK else 12])]
 flat_idx = [i for r in runs for i in r]
 print(f"{len(runs)} test paragraphs of 3 consecutive sentences ({len(flat_idx)} sentences)")
