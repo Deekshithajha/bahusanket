@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BahuSanket Live Signer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans+Kannada:wght@400;600&display=swap">
+<style>
+  :root {
+    --bg: #f2f4f1;
+    --surface: #ffffff;
+    --ink: #1b2220;
+    --muted: #5a6662;
+    --line: #d5dcd8;
+    --stage-top: #e4ebe7;
+    --stage-bottom: #c9d4ce;
+    --accent: #2b6b5e;
+    --accent-ink: #ffffff;
+    --face: #b0473f;
+    --lhand: #2f6fc0;
+    --rhand: #c97a14;
+    --body: #4f5a57;
+    --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111614; --surface: #19201d; --ink: #e6ece9; --muted: #9aa8a2; --line: #2c3632;
+      --stage-top: #24302b; --stage-bottom: #141b18; --accent: #72c4ae; --accent-ink: #0d1a16;
+      --face: #e58a80; --lhand: #7fb0f0; --rhand: #f0b35c; --body: #a9b5b0;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111614; --surface: #19201d; --ink: #e6ece9; --muted: #9aa8a2; --line: #2c3632;
+    --stage-top: #24302b; --stage-bottom: #141b18; --accent: #72c4ae; --accent-ink: #0d1a16;
+    --face: #e58a80; --lhand: #7fb0f0; --rhand: #f0b35c; --body: #a9b5b0;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--ink); margin: 0; }
+  body {
+    font-family: var(--font-body), "Noto Sans Devanagari", "Noto Sans Kannada", sans-serif; font-size: 16px; line-height: 1.5;
+    padding: 18px max(16px, env(safe-area-inset-right, 0px)) 28px max(16px, env(safe-area-inset-left, 0px));
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; display: grid; gap: 18px; }
+  .top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .brand h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(26px, 3.2vw, 36px); margin: 0; letter-spacing: -.01em; }
+  .brand p { margin: 0; color: var(--muted); }
+  .pill { margin-left: auto; font-family: var(--font-mono); font-size: 12px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); display: inline-flex; align-items: center; gap: 8px; }
+  .pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .pill.on { color: var(--accent); border-color: var(--accent); }
+  .pill.on::before { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+  .main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .main { grid-template-columns: minmax(0, 1fr); } }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: grid; gap: 14px; min-width: 0; }
+  .card h2 { font-family: var(--font-display); font-weight: 700; font-size: 18px; margin: 0; }
+  .seg { display: inline-flex; border: 1px solid var(--accent); border-radius: 999px; padding: 2px; gap: 2px; flex-wrap: wrap; }
+  .seg button { font: inherit; font-weight: 600; border: 0; background: transparent; color: var(--accent); padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  textarea { width: 100%; font: inherit; font-size: 19px; line-height: 1.5; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--ink); resize: vertical; min-height: 150px; }
+  .go { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  button.primary { font: inherit; font-weight: 700; font-size: 17px; padding: 11px 26px; border-radius: 999px; border: 1px solid var(--accent);
+    background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+  button.ghost { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+  button:disabled { opacity: .55; cursor: progress; }
+  button:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 2px; }
+  .kbd { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+  .examples { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .examples span { font-size: 13px; color: var(--muted); margin-right: 2px; }
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  @media (max-width: 520px) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .steps li { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 13px; line-height: 1.3; color: var(--muted); }
+  .steps li b { display: block; color: var(--ink); font-size: 13px; }
+  .steps li .t { font-family: var(--font-mono); font-size: 12px; }
+  .steps.busy li { animation: pulse 1.4s ease-in-out infinite; }
+  .steps.busy li:nth-child(2) { animation-delay: .2s; } .steps.busy li:nth-child(3) { animation-delay: .4s; } .steps.busy li:nth-child(4) { animation-delay: .6s; }
+  .steps.done li { border-color: var(--accent); }
+  @keyframes pulse { 50% { border-color: var(--accent); } }
+  @media (prefers-reduced-motion: reduce) { .steps.busy li { animation: none; border-color: var(--accent); } }
+  .msg { margin: 0; font-size: 14px; color: var(--muted); min-height: 1.4em; }
+  .msg.err { color: #b3261e; }
+  .hist { display: grid; gap: 6px; max-height: 260px; overflow: auto; }
+  .hist button { text-align: left; font: inherit; font-size: 14px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; display: grid; gap: 2px; }
+  .hist button[aria-current="true"] { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+  .hist small { color: var(--muted); font-family: var(--font-mono); font-size: 11px; }
+  .stagecol { display: grid; gap: 10px; min-width: 0; }
+  .stage { position: relative; border-radius: 16px; overflow: hidden; aspect-ratio: 4 / 4.4; width: 100%; max-height: calc(100vh - 170px); margin: 0 auto;
+    background: linear-gradient(180deg, var(--stage-top), var(--stage-bottom)); border: 1px solid var(--line); }
+  @supports (aspect-ratio: 1) { .stage { width: min(100%, calc((100vh - 170px) * 4 / 4.4)); } }
+  .stage canvas { display: block; width: 100%; height: 100%; }
+  .status { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; color: var(--muted); font-family: var(--font-mono); font-size: 13px; }
+  .status[hidden], [hidden] { display: none !important; }
+  .caption { position: absolute; left: 12px; right: 12px; bottom: 12px; padding: 10px 14px; border-radius: 12px;
+    background: color-mix(in srgb, var(--surface) 90%, transparent); border: 1px solid var(--line); display: grid; gap: 2px; }
+  .caption .h { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+  .caption .s { font-family: var(--font-display), "Noto Sans Devanagari", "Noto Sans Kannada", sans-serif; font-weight: 600; font-size: clamp(18px, 2.3vw, 24px); line-height: 1.3; }
+  .caption .e { font-size: 15px; color: var(--muted); }
+  .caption:empty { display: none; }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
+  .bar select { font: inherit; font-size: 14px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+  .time { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 6ch; }
+  .foot { font-size: 12px; color: var(--muted); margin: 0; }
+  .foot a { color: var(--accent); }
+</style>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <h1>BahuSanket</h1>
+      <p>Text to Indian Sign Language · English · हिन्दी · ಕನ್ನಡ</p>
+    </div>
+    <span class="pill" id="pill">Connecting…</span>
+  </div>
+
+  <div class="main">
+    <div class="card">
+      <h2>Type a paragraph</h2>
+      <div class="seg" role="group" aria-label="Language" id="langSeg">
+        <button type="button" data-lang="auto" aria-pressed="true">Detect</button>
+        <button type="button" data-lang="en" aria-pressed="false">English</button>
+        <button type="button" data-lang="hi" aria-pressed="false">हिन्दी</button>
+        <button type="button" data-lang="kn" aria-pressed="false">ಕನ್ನಡ</button>
+      </div>
+      <textarea id="text" placeholder="Type or paste one or more sentences in English, Hindi or Kannada…" aria-label="Paragraph to sign"></textarea>
+      <div class="go">
+        <button class="primary" id="go" type="button">Sign it</button>
+        <span class="kbd">or Ctrl + Enter</span>
+      </div>
+      <div class="examples"><span>Try:</span>
+        <button type="button" class="ghost" data-ex="en">English</button>
+        <button type="button" class="ghost" data-ex="hi">हिन्दी</button>
+        <button type="button" class="ghost" data-ex="kn">ಕನ್ನಡ</button>
+      </div>
+      <ol class="steps" id="steps" aria-label="What happens">
+        <li><b>1 · Translate</b>IndicTrans2 → English <span class="t" data-t="translate"></span></li>
+        <li><b>2 · Generate</b>text → sign poses <span class="t" data-t="generate"></span></li>
+        <li><b>3 · Blend</b>sentences joined <span class="t" data-t="blend"></span></li>
+        <li><b>4 · Depth</b>2D → 3D <span class="t" data-t="depth"></span></li>
+      </ol>
+      <p class="msg" id="msg" role="status" aria-live="polite"></p>
+      <h2 style="font-size:15px">Signed so far</h2>
+      <div class="hist" id="hist"></div>
+    </div>
+
+    <div class="stagecol">
+      <div class="stage" id="stage">
+        <canvas id="three" aria-label="3D avatar signing"></canvas>
+        <canvas id="stick" hidden aria-label="Stick figure of the same pose points"></canvas>
+        <div class="status" id="status">Loading the avatar…</div>
+        <div class="caption" id="caption"></div>
+      </div>
+      <div class="bar">
+        <button class="ghost" id="play" type="button">Pause</button>
+        <button class="ghost" id="replay" type="button">Replay</button>
+        <span class="time" id="time">0.0 s</span>
+        <select id="speed" aria-label="Signing speed">
+          <option value="1">Speed 1×</option>
+          <option value="0.75" selected>Speed 0.75×</option>
+          <option value="0.5">Speed 0.5×</option>
+        </select>
+        <div class="seg" role="group" aria-label="Show">
+          <button type="button" data-view="avatar" aria-pressed="true">Avatar</button>
+          <button type="button" data-view="stick" aria-pressed="false">Pose points</button>
+        </div>
+      </div>
+      <p class="foot">Generated by the BahuSanket model, not recorded signing. Avatar: <a href="https://github.com/vrm-c/vrm-specification/tree/master/samples/VRM1_Constraint_Twist_Sample" target="_blank" rel="noopener">VRM1 Constraint Twist Sample</a> © pixiv Inc. (VRM Public License 1.0). Translation: <a href="https://arxiv.org/abs/2305.16307" target="_blank" rel="noopener">IndicTrans2</a> (AI4Bharat). Training data: <a href="https://huggingface.co/datasets/Exploration-Lab/iSign" target="_blank" rel="noopener">iSign</a>.</p>
+    </div>
+  </div>
+</div>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
+  "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3.5.5/lib/three-vrm.module.min.js"
+} }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
+
+const $ = (id) => document.getElementById(id);
+const statusEl = $("status");
+
+// ---------- three.js stage ----------
+const canvas = $("three");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(24, 1, 0.1, 20);
+camera.position.set(0, 1.28, 2.15);
+camera.lookAt(0, 1.18, 0);
+if ((window.__cfg || {}).cam) { const k = window.__cfg.cam; camera.position.set(k[0], k[1], k[2]); camera.lookAt(k[3], k[4], k[5]); }
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 1.6));
+const key = new THREE.DirectionalLight(0xffffff, 1.8);
+key.position.set(0.6, 2, 2.5);
+scene.add(key);
+
+function resize() {
+  const r = canvas.parentElement.getBoundingClientRect();
+  renderer.setSize(r.width, r.height, false);
+  camera.aspect = r.width / r.height;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(canvas.parentElement);
+resize();
+
+let vrm = null;
+const loader = new GLTFLoader();
+loader.register((parser) => new VRMLoaderPlugin(parser));
+
+// ---------- retargeting: point each bone of the avatar along the matching segment of the clip ----------
+// Clip points are image coordinates (x right, y down, z away from the camera). The avatar faces the
+// camera (+Z), so x stays, y and z flip. The video is not mirrored: the signer's left hand drives the
+// avatar's left hand, so the avatar signs exactly as the person did, as if facing you.
+const V = (p, zs = 1) => new THREE.Vector3(p[0], -p[1], -p[2] * zs);
+// MediaPipe's body depth is rough and exaggerated, so it is damped; hand and face depth are good.
+const BODY_Z = (window.__cfg || {}).bz ?? 0.3;
+const _q = new THREE.Quaternion(), _m = new THREE.Matrix4();
+const REST = {};                      // rest direction (or basis) of each bone, measured from the avatar itself
+const bone = (n) => vrm.humanoid.getNormalizedBoneNode(n);
+const restPos = (n) => { const b = bone(n); return b ? b.getWorldPosition(new THREE.Vector3()) : null; };
+function basis(along, side) {          // rotation whose x axis = along, y axis lies toward side
+  const x = along.clone().normalize();
+  const z = new THREE.Vector3().crossVectors(x, side).normalize();
+  const y = new THREE.Vector3().crossVectors(z, x);
+  return new THREE.Quaternion().setFromRotationMatrix(_m.makeBasis(x, y, z));
+}
+const FINGERS = ["Thumb", "Index", "Middle", "Ring", "Little"];
+const JOINTS = { Thumb: ["Metacarpal", "Proximal", "Distal"], Index: ["Proximal", "Intermediate", "Distal"] };
+const LM = { Thumb: [1, 2, 3, 4], Index: [5, 6, 7, 8], Middle: [9, 10, 11, 12], Ring: [13, 14, 15, 16], Little: [17, 18, 19, 20] };
+const joints = (f) => JOINTS[f] || JOINTS.Index;
+function measureRest() {
+  vrm.scene.updateMatrixWorld(true);
+  const dir = (a, b) => { const A = restPos(a), B = restPos(b); return A && B ? B.sub(A).normalize() : null; };
+  for (const s of ["left", "right"]) {
+    REST[s + "UpperArm"] = dir(s + "UpperArm", s + "LowerArm");
+    REST[s + "LowerArm"] = dir(s + "LowerArm", s + "Hand");
+    const H = restPos(s + "Hand");
+    REST[s + "Hand"] = basis(restPos(s + "MiddleProximal").sub(H), restPos(s + "IndexProximal").sub(restPos(s + "LittleProximal")));
+    for (const f of FINGERS) {
+      const js = joints(f);
+      js.forEach((j, k) => {
+        const next = k + 1 < js.length ? s + f + js[k + 1] : null;
+        REST[s + f + j] = next ? dir(s + f + j, next) : REST[s + f + js[k - 1]];
+      });
+    }
+  }
+}
+// The two front locks of hair hang over the chest and hide the hands and forearms. Swing them back behind the
+// shoulders, then make that the hair physics' resting pose, so they stay there while the avatar signs.
+const HAIR_BACK = (window.__cfg || {}).hairBack ?? 0.8;    // radians (about 45 degrees)
+function tuckHair() {
+  vrm.scene.updateMatrixWorld(true);
+  const R = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), HAIR_BACK);
+  for (const n of ["J_Sec_Hair1_11", "J_Sec_Hair1_12"]) {
+    const o = vrm.scene.getObjectByName(n);
+    if (!o || !o.parent) continue;
+    const pw = o.parent.getWorldQuaternion(new THREE.Quaternion()), w = o.getWorldQuaternion(new THREE.Quaternion());
+    o.quaternion.copy(pw.invert().multiply(R.clone().multiply(w)));
+  }
+  vrm.scene.updateMatrixWorld(true);
+  if (vrm.springBoneManager) vrm.springBoneManager.setInitState();
+}
+// ---------- keep the arms outside the body and its loose T-shirt ----------
+// Our arm directions come from a real person with a slimmer body, so on the avatar a forearm held close to the
+// chest can pass inside the shirt. At load we map the front and back surface of the torso (body and shirt, not
+// the arms) on a 1 cm grid. Each frame, if the elbow, the forearm or the hand would be inside it, we move them
+// forward until they clear the surface by ARM_R, then re-aim the arm bones.
+const ARM_R = (window.__cfg || {}).armR ?? 0.035;      // metres: forearm thickness + a little air
+const GX0 = -0.35, GY0 = 0.75, GS = 0.01, GNX = 71, GNY = 80;
+let SHELL_F = null, SHELL_B = null, SIDE = null, SIDE_TOP = 0, ARM = {};
+function buildBodyShell() {
+  if ((window.__cfg || {}).noShell) return;
+  vrm.scene.updateMatrixWorld(true);
+  const fz = new Float32Array(GNX * GNY).fill(-Infinity), bz = new Float32Array(GNX * GNY).fill(Infinity);
+  const v = new THREE.Vector3(), side = new Array(GNY).fill(-Infinity);
+  vrm.scene.traverse((m) => {
+    if (!m.isSkinnedMesh || !/body/i.test(m.name + (m.parent ? m.parent.name : "")) ) return;
+    const pos = m.geometry.attributes.position, si = m.geometry.attributes.skinIndex, sw = m.geometry.attributes.skinWeight;
+    if (!pos || !si) return;
+    const armBone = m.skeleton.bones.map((b) => /Arm|Hand|Shoulder|Thumb|Index|Middle|Ring|Little|Leg|Foot|Toe/i.test(b.name));
+    for (let i = 0; i < pos.count; i++) {
+      let best = 0, bw = -1;
+      for (let k = 0; k < 4; k++) { const w = sw.getComponent(i, k); if (w > bw) { bw = w; best = si.getComponent(i, k); } }
+      if (armBone[best]) continue;
+      m.getVertexPosition(i, v); v.applyMatrix4(m.matrixWorld);
+      const gx = Math.round((v.x - GX0) / GS), gy = Math.round((v.y - GY0) / GS);
+      if (gx < 0 || gx >= GNX || gy < 0 || gy >= GNY) continue;
+      const k = gy * GNX + gx;
+      if (v.z > fz[k]) fz[k] = v.z;
+      if (v.z < bz[k]) bz[k] = v.z;
+      if (Math.abs(v.x) > side[gy]) side[gy] = Math.abs(v.x);
+    }
+  });
+  SIDE = side.map((w) => w + ARM_R + GS);
+  // grow the surface by ARM_R sideways and up/down, so a forearm next to the body also clears it
+  const r = Math.ceil(ARM_R / GS);
+  SHELL_F = new Float32Array(GNX * GNY).fill(-Infinity); SHELL_B = new Float32Array(GNX * GNY).fill(Infinity);
+  for (let y = 0; y < GNY; y++) for (let x = 0; x < GNX; x++) {
+    let f = -Infinity, b = Infinity;
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      const yy = y + dy, xx = x + dx;
+      if (yy < 0 || yy >= GNY || xx < 0 || xx >= GNX || dx * dx + dy * dy > r * r) continue;
+      const k = yy * GNX + xx;
+      if (fz[k] > f) f = fz[k];
+      if (bz[k] < b) b = bz[k];
+    }
+    SHELL_F[y * GNX + x] = f + ARM_R; SHELL_B[y * GNX + x] = b;
+  }
+  for (const s of ["left", "right"]) {
+    const S = restPos(s + "UpperArm"), E = restPos(s + "LowerArm"), H = restPos(s + "Hand"), M = restPos(s + "MiddleProximal");
+    ARM[s] = { S, up: S.distanceTo(E), low: E.distanceTo(H), hand: H.distanceTo(M) };
+  }
+  SIDE_TOP = ARM.left.S.y - 0.08;      // above the armpit the sides are sleeves and shoulders, so only push forward there
+}
+function clearance(p) {               // how far p must move forward (+z, toward the camera) to be outside the body
+  if (!SHELL_F) return 0;
+  const gx = Math.round((p.x - GX0) / GS), gy = Math.round((p.y - GY0) / GS);
+  if (gx < 0 || gx >= GNX || gy < 0 || gy >= GNY) return 0;
+  if (p.y < SIDE_TOP && Math.abs(p.x) >= SIDE[gy]) return 0;          // beside the body
+  const k = gy * GNX + gx, f = SHELL_F[k];
+  if (f === -Infinity || p.z >= f || p.z < SHELL_B[k] - 0.03) return 0;   // outside, or behind the back
+  return f - p.z;
+}
+// Two-bone reach: shoulder S, wrist target T, bone lengths a and b. The elbow bends toward `pole`.
+function ik2(S, T, a, b, pole) {
+  const d = T.clone().sub(S); let L = d.length(); const dn = d.clone().divideScalar(L || 1);
+  L = Math.min(Math.max(L, Math.abs(a - b) + 1e-3), a + b - 1e-3);
+  const x = (a * a - b * b + L * L) / (2 * L), h = Math.sqrt(Math.max(0, a * a - x * x));
+  const p = pole.clone().addScaledVector(dn, -pole.dot(dn));
+  if (p.lengthSq() < 1e-8) p.set(0, -1, 0).addScaledVector(dn, -dn.y);
+  p.normalize();
+  return [S.clone().addScaledVector(dn, x).addScaledVector(p, h), S.clone().addScaledVector(dn, L)];
+}
+// d1 = upper-arm direction, d2 = forearm direction (avatar frame). The wrist keeps its left-right and up-down
+// place and only moves toward the camera (`push`) until elbow, forearm and the start of the hand are outside.
+function solveArm(s, d1, d2, push0) {
+  const A = ARM[s];
+  d1 = d1.clone().normalize(); d2 = d2.clone().normalize();
+  const E0 = A.S.clone().addScaledVector(d1, A.up), W0 = E0.clone().addScaledVector(d2, A.low);
+  if (clearance(E0) <= 0 && push0 <= 0) {               // nothing to fix? keep the arm exactly as it was
+    let inside = false;
+    for (const t of [0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4]) {
+      const P = E0.clone().addScaledVector(d2, A.low * Math.min(t, 1) + (t > 1 ? A.hand * (t - 1) / 0.4 : 0));
+      if (clearance(P) > 0) { inside = true; break; }
+    }
+    if (!inside) return { d1, d2, push: 0, elbow: 0, W0 };
+  }
+  let pole = E0.clone().sub(A.S), push = push0, E = E0, W = W0, elbow = 0;
+  for (let it = 0; it < 12; it++) {
+    const T = W0.clone(); T.z += push;
+    [E, W] = ik2(A.S, T, A.up, A.low, pole);
+    const ce = clearance(E);
+    if (ce > 0) {
+      // an elbow inside the body goes out to the side (where a real elbow hangs) or forward, whichever is shorter
+      const gy = Math.round((E.y - GY0) / GS);
+      const out = E.y < SIDE_TOP && gy >= 0 && gy < GNY ? SIDE[gy] - Math.abs(E.x) : Infinity;
+      const Ep = E.clone();
+      if (out < ce) Ep.x += Math.sign(E.x || (s === "left" ? 1 : -1)) * (out + 0.01); else Ep.z += ce + 0.005;
+      pole = Ep.sub(A.S); elbow = Math.max(elbow, Math.min(out, ce)); continue;
+    }
+    const f = W.clone().sub(E).normalize();
+    let near = 0, far = 0;
+    for (const t of [0.15, 0.3, 0.45, 0.6, 0.8, 1, 1.2, 1.4]) {
+      const P = E.clone().addScaledVector(f, A.low * Math.min(t, 1) + (t > 1 ? A.hand * (t - 1) / 0.4 : 0));
+      const c = clearance(P);
+      if (c > 0) { if (t <= 0.45) near = Math.max(near, c); else far = Math.max(far, c); }
+    }
+    if (near <= 0 && far <= 0) break;
+    if (far > 0 && push < PUSH_MAX) push = Math.min(PUSH_MAX, push + far + 0.005);   // wrist end inside: bring the hand forward
+    if (near > 0) {                                     // elbow end inside: swing the elbow out, like a real elbow
+      const sx = Math.sign(E.x || (s === "left" ? 1 : -1));
+      pole = E.clone().sub(A.S); pole.x += sx * (near + 0.01); pole.z += 0.3 * near;
+      elbow = Math.max(elbow, near);
+    } else if (push >= PUSH_MAX) break;
+  }
+  return { d1: E.clone().sub(A.S).normalize(), d2: W.clone().sub(E).normalize(), push, elbow, W0, E0, E, W };
+}
+let pushStats = { frames: 0, pushed: 0, maxCm: 0 };
+const PUSH_MAX = window.__cfg?.pushMax ?? 0.12;   // never move a hand more than 12 cm toward the camera
+function keepOutsidePair(raw) {
+  const out = {};
+  if (!SHELL_F) return out;
+  for (const s of ["left", "right"]) if (raw[s] && ARM[s]) out[s] = solveArm(s, raw[s][0], raw[s][1], 0);
+  // hands that touch or nearly touch are moved forward together, so they still meet
+  const L = out.left, R = out.right;
+  if (L && R && L.W0.distanceTo(R.W0) < 0.15 && Math.abs(L.push - R.push) > 0.005) {
+    const m = Math.max(L.push, R.push);
+    for (const s of ["left", "right"]) out[s] = solveArm(s, raw[s][0], raw[s][1], m);
+  }
+  for (const r of Object.values(out)) {
+    const mv = Math.max(r.push, r.elbow);
+    pushStats.frames++; if (mv > 0.002) pushStats.pushed++; pushStats.maxCm = Math.max(pushStats.maxCm, mv * 100);
+  }
+  window.__lastFix = out;
+  return out;
+}
+window.__pushStats = () => pushStats;
+
+const targets = new Map();            // bone name -> target local rotation for this frame
+function setWorld(name, parentWorld, worldQ) {
+  targets.set(name, parentWorld.clone().invert().multiply(worldQ));
+  return worldQ;
+}
+function aim(name, parentWorld, d) {  // turn the bone (inheriting parentWorld) so its rest direction points along d
+  const from = REST[name].clone().applyQuaternion(parentWorld);
+  return setWorld(name, parentWorld, new THREE.Quaternion().setFromUnitVectors(from, d.clone().normalize()).multiply(parentWorld));
+}
+let blink = { l: 0, r: 0 }, mouth = 0;
+const dist = (f, a, b) => Math.hypot(f[a][0] - f[b][0], f[a][1] - f[b][1]);
+const clamp01 = (x) => Math.min(1, Math.max(0, x));
+
+function applyFrame(c, t, lerp) {
+  targets.clear();
+  const pose = c.pose[t], I = new THREE.Quaternion();
+  const ARMS = [["left", 11, 13, 15, c.lh[t]], ["right", 12, 14, 16, c.rh[t]]];
+  const raw = {};
+  for (const [s, sh, el, wr, pts] of ARMS) {
+    if (!pose) break;
+    const P = (i) => V(pose[i], BODY_Z);
+    const wristPt = P(wr);                 // hand depth is relative to its own wrist, so take x, y from the hand
+    if (pts) { const h = V(pts[0]); wristPt.x = h.x; wristPt.y = h.y; }
+    raw[s] = [P(el).sub(P(sh)), wristPt.clone().sub(P(el))];
+  }
+  const fixed = keepOutsidePair(raw);
+  for (const [s, sh, el, wr, pts] of ARMS) {
+    if (!pose) break;
+    const { d1, d2 } = fixed[s] || { d1: raw[s][0], d2: raw[s][1] };
+    const up = aim(s + "UpperArm", I, d1);
+    const low = aim(s + "LowerArm", up, d2);
+    if (!pts) continue;
+    const H = pts.map(V);
+    const handW = basis(H[9].clone().sub(H[0]), H[5].clone().sub(H[17])).multiply(REST[s + "Hand"].clone().invert());
+    setWorld(s + "Hand", low, handW);
+    for (const f of FINGERS) {
+      let parent = handW;
+      joints(f).forEach((j, k) => {
+        const a = LM[f][k], b = LM[f][k + 1];
+        parent = aim(s + f + j, parent, H[b].clone().sub(H[a]));
+      });
+    }
+  }
+  const face = c.face[t];
+  if (face) {
+    const F = (i) => V(face[i]);
+    const headW = basis(F(454).sub(F(234)), F(face[10] ? 10 : 168).sub(F(152)));   // x = toward the avatar's left, y = up
+    const half = new THREE.Quaternion().slerp(headW, 0.5);
+    targets.set("neck", half);
+    targets.set("head", half.clone());
+    // eyes: lid gap relative to eye width; mouth: inner lip gap relative to mouth width
+    const eyeR = dist(face, 159, 145) / dist(face, 33, 133), eyeL = dist(face, 386, 374) / dist(face, 362, 263);
+    const bl = (r) => clamp01((0.2 - r) / 0.1);
+    blink = { l: blink.l + (bl(eyeL) - blink.l) * lerp, r: blink.r + (bl(eyeR) - blink.r) * lerp };
+    mouth += (clamp01(dist(face, 13, 14) / dist(face, 61, 291) * 3) - mouth) * lerp;
+    const em = vrm.expressionManager;
+    em.setValue("blinkLeft", blink.l);
+    em.setValue("blinkRight", blink.r);
+    em.setValue("aa", mouth);
+  }
+  for (const [n, q] of targets) { const b = bone(n); if (b) b.quaternion.slerp(q, lerp); }
+}
+
+// ---------- 2D stick figure of the same frame ----------
+const stick = $("stick"), sctx = stick.getContext("2d");
+const HAND = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+const FACE_LINES = [
+  [234,132,58,172,136,150,149,176,148,152,377,400,378,379,365,397,288,361,454],
+  [70,63,105,66,107,55,65], [300,293,334,296,336,285,295],
+  [61,146,91,181,84,17,314,405,321,375,291,409,270,267,0,37,40,185,61],
+  [78,95,88,178,87,14,317,402,318,324,308,311,13,81,78],
+  [33,159,133,145,33], [362,386,263,374,362],
+];
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function drawStick(c, t) {
+  const r = stick.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+  if (!r.width) return;
+  if (stick.width !== Math.round(r.width * dpr)) { stick.width = Math.round(r.width * dpr); stick.height = Math.round(r.height * dpr); }
+  const W = stick.width, H = stick.height;
+  sctx.clearRect(0, 0, W, H);
+  const pose = c.pose[t]; if (!pose) return;
+  // frame the upper body: centre on the shoulders, scale by shoulder width
+  const ls = pose[11], rs = pose[12];
+  const cx = (ls[0] + rs[0]) / 2, cy = (ls[1] + rs[1]) / 2, sw = Math.hypot(ls[0] - rs[0], ls[1] - rs[1]) || 0.2;
+  const s = Math.min(W, H * 0.9) / (sw * 3.6);
+  const P = (p) => [W / 2 + (p[0] - cx) * s, H * 0.45 + (p[1] - cy) * s];
+  const lw = W / 480;
+  const line = (a, b, col, w) => { if (!a || !b) return; const A = P(a), B = P(b); sctx.strokeStyle = col; sctx.lineWidth = w; sctx.lineCap = "round"; sctx.beginPath(); sctx.moveTo(...A); sctx.lineTo(...B); sctx.stroke(); };
+  const body = css("--body");
+  for (const [a, b] of [[11,12],[11,13],[13,15],[12,14],[14,16]]) line(pose[a], pose[b], body, 6 * lw);
+  if (c.face[t]) { const f = c.face[t]; line([cx, cy], f[152], body, 6 * lw); for (const L of FACE_LINES) for (let i = 1; i < L.length; i++) line(f[L[i-1]], f[L[i]], css("--face"), 2 * lw); }
+  for (const [pts, col, wrist] of [[c.lh[t], css("--lhand"), 15], [c.rh[t], css("--rhand"), 16]]) {
+    if (!pts) continue;
+    line(pose[wrist], pts[0], col, 3 * lw);
+    for (const [a, b] of HAND) line(pts[a], pts[b], col, 2.5 * lw);
+  }
+}
+
+// ---------- app ----------
+function addDepth() {}          // every clip here carries depth from the depth model
+function paraToV2(d) {
+  const clips = [];
+  for (const c of d.clips) {
+    const base = { uid: c.uid, text: c.source, lang: c.lang };
+    clips.push({ ...base, kind: "para", pts: c.pts, z: c.z, segs: c.segments });
+    if (c.cut) clips.push({ ...base, kind: "paracut", pts: c.cut.pts, z: c.cut.z, segs: c.cut.segments });
+  }
+  return { point_idx: d.point_idx, fps: d.fps, clips };
+}
+function fromV2(d, mode = "model") {
+  const idx = d.point_idx, S = 0.2, CX = 0.5, CY = 0.4;   // place shoulders like a typical video frame
+  return d.clips.map((c) => {
+    const zs = mode === "mp" ? (c.z_real || c.z) : mode === "model" ? c.z : null;
+    const n = c.pts.length, last = new Array(idx.length).fill(null);
+    let first = new Array(idx.length).fill(null);
+    for (const row of c.pts) idx.forEach((_, k) => { if (first[k] === null && row[2 * k] !== null) first[k] = [row[2 * k], row[2 * k + 1]]; });
+    const out = { uid: c.uid, text: c.text, kind: c.kind, fps: d.fps, n, pose: [], face: [], lh: [], rh: [], hasMp: !!c.z_real, segs: c.segs, lang: c.lang };
+    c.pts.forEach((row, t) => {
+      const zr = zs ? zs[t] : null;
+      const pose = new Array(33).fill(null), face = new Array(468).fill(null), lh = new Array(21).fill(null), rh = new Array(21).fill(null);
+      let lok = true, rok = true;
+      idx.forEach((m, k) => {
+        let p = row[2 * k] === null ? null : [row[2 * k], row[2 * k + 1], zr && zr[k] !== null ? zr[k] : 0];
+        const isHand = m >= 501;
+        if (p) last[k] = p;
+        else if (!isHand) p = last[k] || first[k];          // hold body/face points through tracking gaps
+        const q = p ? [CX + S * p[0], CY + S * p[1], S * (p[2] || 0), 1] : null;
+        if (m < 33) pose[m] = q;
+        else if (m < 501) face[m - 33] = q;
+        else if (m < 522) { lh[m - 501] = q; if (!q) lok = false; }
+        else { rh[m - 522] = q; if (!q) rok = false; }
+      });
+      out.pose.push(pose); out.face.push(face); out.lh.push(lok ? lh : null); out.rh.push(rok ? rh : null);
+    });
+    if (!zs) addDepth(out);
+    return out;
+  });
+}
+const LANG = { en: "English", hi: "Hindi", kn: "Kannada" };
+const TOPIC = { rain: "Rain alert", scheme: "Scheme for deaf students" };
+let items = [], cur = -1, frame = 0, playing = true, speed = 0.75, acc = 0, last = performance.now(), lang = "auto", live = false, busy = false;
+const histEl = $("hist");
+
+function addItem(c, pointIdx, fps, label, origin) {
+  const v2 = paraToV2({ point_idx: pointIdx, fps, clips: [{ ...c, cut: null }] });
+  const clip = fromV2(v2, "model")[0];
+  items.push({ clip, label, origin, lang: c.lang });
+  const i = items.length - 1;
+  const b = document.createElement("button"); b.type = "button"; b.dataset.i = String(i);
+  const s = document.createElement("span"); s.textContent = c.source.length > 90 ? c.source.slice(0, 90) + "…" : c.source; s.lang = c.lang;
+  const sm = document.createElement("small"); sm.textContent = `${label} · ${LANG[c.lang] || c.lang} · ${(clip.n / fps).toFixed(1)} s`;
+  b.append(s, sm); b.addEventListener("click", () => select(i));
+  histEl.prepend(b);
+  return i;
+}
+let segShown = -1;
+function caption(c, t) {
+  let k = c.segs.findIndex((g) => t >= g.start && t < g.end); if (k < 0) k = c.segs.length - 1;
+  if (k === segShown) return; segShown = k;
+  const g = c.segs[k], cap = $("caption"); cap.textContent = "";
+  const h = document.createElement("div"); h.className = "h";
+  h.textContent = `${LANG[c.lang] || c.lang} · sentence ${k + 1} of ${c.segs.length}`;
+  const s = document.createElement("div"); s.className = "s"; s.lang = c.lang; s.textContent = g.src;
+  cap.append(h, s);
+  if (c.lang !== "en" || g.en !== g.src) { const e = document.createElement("div"); e.className = "e"; e.textContent = "→ " + g.en; cap.append(e); }
+}
+function select(i) {
+  cur = i; frame = 0; acc = 0; segShown = -1;
+  for (const b of histEl.children) b.setAttribute("aria-current", String(b.dataset.i === String(i)));
+  show(true);
+}
+function show(snap) {
+  if (cur < 0) return;
+  const c = items[cur].clip;
+  caption(c, frame);
+  if (vrm) applyFrame(c, frame, snap ? 1 : 0.6);
+  drawStick(c, frame);
+  $("time").textContent = (frame / c.fps).toFixed(1) + " s";
+}
+function tick(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (cur >= 0 && playing) {
+    const c = items[cur].clip; acc += dt * speed;
+    const step = 1 / c.fps;
+    if (acc >= step) {
+      const n = Math.floor(acc / step); acc -= n * step; frame += n;
+      if (frame >= c.n) frame = 0;
+      show(frame < n);
+    }
+  }
+  if (vrm) vrm.update(dt);
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+$("play").addEventListener("click", () => { playing = !playing; $("play").textContent = playing ? "Pause" : "Play"; });
+$("replay").addEventListener("click", () => { frame = 0; acc = 0; segShown = -1; playing = true; $("play").textContent = "Pause"; show(true); });
+$("speed").addEventListener("change", () => { speed = Number($("speed").value); });
+function setView(v) {
+  for (const b of document.querySelectorAll("[data-view]")) b.setAttribute("aria-pressed", String(b.dataset.view === v));
+  canvas.hidden = v !== "avatar"; stick.hidden = v !== "stick"; show(true);
+}
+for (const b of document.querySelectorAll("[data-view]")) b.addEventListener("click", () => setView(b.dataset.view));
+function setLang(v) {
+  lang = v;
+  for (const b of document.querySelectorAll("[data-lang]")) b.setAttribute("aria-pressed", String(b.dataset.lang === v));
+}
+for (const b of document.querySelectorAll("[data-lang]")) b.addEventListener("click", () => setLang(b.dataset.lang));
+const EXAMPLES = {
+  en: "Good morning everyone. Thank you for coming today. Please ask your questions at the end.",
+  hi: "आज मौसम बहुत अच्छा है। बच्चे पार्क में खेल रहे हैं।",
+  kn: "ನಮಸ್ಕಾರ. ಇಂದು ನಮ್ಮ ಕಾಲೇಜಿನಲ್ಲಿ ಒಂದು ಕಾರ್ಯಕ್ರಮವಿದೆ. ಎಲ್ಲರೂ ಬನ್ನಿ.",
+};
+for (const b of document.querySelectorAll("[data-ex]")) b.addEventListener("click", () => { $("text").value = EXAMPLES[b.dataset.ex]; setLang(b.dataset.ex); $("text").focus(); });
+function msg(t, err) { $("msg").textContent = t; $("msg").classList.toggle("err", !!err); }
+function stepTimes(tm) { for (const el of document.querySelectorAll("[data-t]")) { const v = tm ? tm[el.dataset.t] : null; el.textContent = v == null ? "" : `${v} s`; } }
+
+async function signIt() {
+  const text = $("text").value.trim();
+  if (busy) return;
+  if (!text) { msg("Type a sentence first."); $("text").focus(); return; }
+  if (!live) { msg("Live signing needs the Colab server (notebook 20). The examples on the left still play.", true); return; }
+  busy = true; $("go").disabled = true; stepTimes(null);
+  $("steps").className = "steps busy";
+  const t0 = performance.now();
+  const timer = setInterval(() => msg(`Working… ${((performance.now() - t0) / 1000).toFixed(0)} s`), 300);
+  try {
+    const r = await fetch("api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, lang }) });
+    const res = await r.json().catch(() => ({ ok: false, error: `the server answered ${r.status}` }));
+    if (!res.ok) throw new Error(res.error || "unknown error");
+    const i = addItem(res.clip, res.point_idx, res.fps, "Typed now", "live");
+    select(i); playing = true; $("play").textContent = "Pause";
+    const tm = res.timing || {};
+    $("steps").className = "steps done";
+    stepTimes(tm.cached ? null : { translate: res.clip.lang === "en" ? "–" : tm.translate, generate: tm.generate, blend: "<0.1", depth: tm.depth });
+    msg(`Signed in ${((performance.now() - t0) / 1000).toFixed(1)} s` + (tm.cached ? " (typed before, so shown at once)" : "") + `: ${new Set(res.clip.segments.map((g) => g.src)).size} sentence${new Set(res.clip.segments.map((g) => g.src)).size > 1 ? "s" : ""}, ${(res.clip.n / res.fps).toFixed(1)} s of signing.`);
+  } catch (err) {
+    $("steps").className = "steps";
+    msg("Could not sign it: " + (err && err.message ? err.message : err), true);
+  } finally { clearInterval(timer); busy = false; $("go").disabled = false; }
+}
+$("go").addEventListener("click", signIt);
+$("text").addEventListener("keydown", (ev) => { if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); signIt(); } });
+
+fetch("api/health").then((r) => (r.ok ? r.json() : null)).then((h) => {
+  live = !!(h && h.ok);
+  $("pill").textContent = live ? `Live · ${h.gpu}` : "Offline · prepared examples only";
+  $("pill").classList.toggle("on", live);
+}).catch(() => { $("pill").textContent = "Offline · prepared examples only"; });
+
+Promise.all([
+  fetch("clips_paragraph.json").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+  fetch("avatar.b64.txt").then((r) => r.text()).then((b64) => {
+    const bin = Uint8Array.from(atob(b64.trim()), (ch) => ch.charCodeAt(0));
+    return loader.parseAsync(bin.buffer, "");
+  }),
+]).then(([para, gltf]) => {
+  if (para) for (const c of para.clips.slice().reverse()) addItem(c, para.point_idx, para.fps, `Example: ${TOPIC[c.uid.split("_")[0]] || c.uid}`, "demo");
+  vrm = gltf.userData.vrm;
+  VRMUtils.removeUnnecessaryVertices(gltf.scene);
+  VRMUtils.combineSkeletons(gltf.scene);
+  vrm.scene.traverse((o) => { o.frustumCulled = false; });
+  measureRest(); tuckHair(); buildBodyShell();
+  scene.add(vrm.scene);
+  if (vrm.lookAt) vrm.lookAt.target = camera;
+  statusEl.hidden = true;
+  if (items.length) select(items.length - 1);
+}).catch((err) => {
+  statusEl.textContent = "The avatar could not load (" + (err && err.message ? err.message : err) + "). Reload the page to try again.";
+  console.error(err);
+});
+if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { playing = false; $("play").textContent = "Play"; }
+requestAnimationFrame(tick);
+window.__bahu = { get ready() { return !!vrm; }, get items() { return items.length; }, pause() { playing = false; }, set frame(v) { frame = v; show(true); } };
+</script>
