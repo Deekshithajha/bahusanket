@@ -259,11 +259,16 @@ async function signIt() {
 $("go").addEventListener("click", signIt);
 $("text").addEventListener("keydown", (ev) => { if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); signIt(); } });
 
-fetch("api/health").then((r) => (r.ok ? r.json() : null)).then((h) => {
-  live = !!(h && h.ok);
-  $("pill").textContent = live ? `Live · ${h.gpu}` : "Offline · prepared examples only";
-  $("pill").classList.toggle("on", live);
-}).catch(() => { $("pill").textContent = "Offline · prepared examples only"; });
+let polls = 0;
+function checkLive() {          // the server answers ok once its models are loaded; keep asking for a few minutes
+  fetch("api/health").then((r) => (r.ok ? r.json() : null)).then((h) => {
+    live = !!(h && h.ok);
+    $("pill").textContent = live ? `Live · ${h.gpu}` : h ? "Loading the models…" : "Offline · prepared examples only";
+    $("pill").classList.toggle("on", live);
+    if (h && !live && ++polls < 120) setTimeout(checkLive, 3000);
+  }).catch(() => { $("pill").textContent = "Offline · prepared examples only"; });
+}
+checkLive();
 
 Promise.all([
   fetch("clips_paragraph.json").then((r) => (r.ok ? r.json() : null)).catch(() => null),

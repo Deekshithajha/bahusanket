@@ -1,0 +1,12 @@
+torch==2.5.1
+numpy>=1.26,<2.2
+transformers==4.46.3
+tokenizers==0.20.3
+huggingface_hub>=0.26,<0.27
+sentence-transformers==3.3.1
+IndicTransToolkit==1.1.1
+sacremoses
+sacrebleu
+indic-nlp-library-itt
+sentencepiece
+cython

@@ -1,0 +1,7 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "BahuSanket: setup (once)", "type": "shell", "command": "bash setup.sh", "problemMatcher": [] },
+    { "label": "BahuSanket: run", "type": "shell", "command": "bash run.sh", "problemMatcher": [], "group": { "kind": "build", "isDefault": true } }
+  ]
+}
