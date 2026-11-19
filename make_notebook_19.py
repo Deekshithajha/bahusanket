@@ -33,8 +33,8 @@ Until now the model only took **one English sentence** at a time. This notebook 
 **Before you run (one time, about 2 minutes).**
 * IndicTrans2 asks you to accept its terms first. Log in to huggingface.co, open both pages and click the agree button:
   https://huggingface.co/ai4bharat/indictrans2-indic-en-1B and https://huggingface.co/ai4bharat/indictrans2-en-indic-dist-200M
-* Your Hugging Face token must be in Colab's **Secrets** (key icon on the left) as `HF_TOKEN` with notebook access on (the same as notebook 08).
-  It is read from there and never printed or saved.
+* Your Hugging Face token is read from Colab's **Secrets** (`HF_TOKEN`, as in notebook 08). If Secrets can't be reached, cell 1 shows a
+  hidden box: paste the token there. It is never printed or saved.
 
 **How to run:** Runtime → Change runtime type → **T4 GPU**, then Runtime → **Run all** (about 15–25 minutes; no training).
 Paste the last cell's output back to Claude and attach `avatar/clips_paragraph_19.json` from your Drive.
@@ -45,9 +45,12 @@ if not os.environ.get("HF_TOKEN") and not os.environ.get("BAHU_ROOT"):
     try:
         from google.colab import userdata
         os.environ["HF_TOKEN"] = userdata.get("HF_TOKEN")
-    except Exception as e:
-        raise RuntimeError("Add your Hugging Face token to Colab Secrets as HF_TOKEN (key icon, left bar) "
-                           "and switch on 'Notebook access', then run again") from e
+    except Exception:
+        # Secrets only work from the Colab web page (not e.g. VS Code). Ask instead: typed in a hidden box, never printed or saved.
+        from getpass import getpass
+        os.environ["HF_TOKEN"] = getpass("Colab Secrets not available. Paste your Hugging Face token (hidden) and press Enter: ").strip()
+    assert os.environ.get("HF_TOKEN", "").startswith("hf_"), "That does not look like a Hugging Face token (it starts with hf_)"
+    print("Hugging Face token: OK (not shown)")
 ''')
 code(S(2))
 code(S(3))
