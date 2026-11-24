@@ -6,11 +6,15 @@ echo "== 1/4 The BahuSanket model bundle"
 if [ ! -f bundle/model_point_indices_v2.json ]; then
   ZIP=""
   for z in bahusanket_bundle.zip ~/Downloads/bahusanket_bundle.zip; do [ -f "$z" ] && ZIP="$z" && break; done
-  if [ -z "$ZIP" ]; then
+  if [ -z "$ZIP" ]; then      # Safari often unzips downloads by itself: use the folder then
+    F="$(find bahusanket_bundle ~/Downloads/bahusanket_bundle -name model_point_indices_v2.json 2>/dev/null | head -1)"
+    if [ -n "$F" ]; then mkdir -p bundle && cp -R "$(dirname "$F")"/. bundle/ && echo "copied the unzipped bundle folder"; fi
+  fi
+  if [ -z "$ZIP" ] && [ ! -f bundle/model_point_indices_v2.json ]; then
     echo "Could not find bahusanket_bundle.zip. Download it from your Google Drive (BahuSanket/live_bundle/) into this folder"
     echo "or into Downloads, then run: bash setup.sh"; exit 1
   fi
-  mkdir -p bundle && unzip -q -o "$ZIP" -d bundle && echo "unpacked $ZIP"
+  [ -n "$ZIP" ] && mkdir -p bundle && unzip -q -o "$ZIP" -d bundle && echo "unpacked $ZIP"
 else
   echo "already unpacked"
 fi

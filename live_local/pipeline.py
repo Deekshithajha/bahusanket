@@ -34,6 +34,9 @@ def pick_device():
 
 
 DEVICE = pick_device()
+# The sign models are small and run fast on the CPU. On Apple GPUs (mps) some of their layers give wrong numbers in PyTorch,
+# so they use the CPU there; only IndicTrans2 (big) uses the Apple GPU. BAHU_POSE_DEVICE overrides this.
+POSE_DEVICE = os.environ.get("BAHU_POSE_DEVICE") or ("cpu" if DEVICE == "mps" else DEVICE)
 HF = {"distilbert": os.path.join(MODELS, "distilbert-base-uncased"),
       "minilm": os.path.join(MODELS, "all-MiniLM-L6-v2"),
       "indic_en": os.path.join(MODELS, "indictrans2-indic-en-1B")}
@@ -67,27 +70,27 @@ class Signer:
         vq.load_state_dict(ck_vq["model"]); vq.eval()
         ck_rv = _load(os.path.join(CK, "rvq_v2_123pts.pt")); rvc = ck_rv["config"]
         self.rvq = RVQ.ResidualPoseVQ(vq, n_res=rvc["n_res"], n_codes=rvc["n_codes"])
-        self.rvq.load_state_dict(ck_rv["model"]); self.rvq.to(DEVICE).eval()
+        self.rvq.load_state_dict(ck_rv["model"]); self.rvq.to(POSE_DEVICE).eval()
 
         ckp = _load(os.path.join(CK, "rtrans_123pts_b.pt")); pr = ckp["config"]
         self.pred = RT.ResidualCodePredictor(n_layers=1 + rvc["n_res"], n_codes=rvc["n_codes"], d_model=pr["d_model"], n_heads=pr["n_heads"],
                                              n_blocks=pr["n_blocks"], ff=pr["ff"], dropout=pr["dropout"], max_len=pr["max_len"])
-        _load_without_bert(self.pred, ckp["model"]); self.pred.to(DEVICE).eval()
+        _load_without_bert(self.pred, ckp["model"]); self.pred.to(POSE_DEVICE).eval()
 
         ck = _load(os.path.join(CK, "t2c_more_123pts.pt")); self.cfg = ck["config"]; c = self.cfg
         self.model = T.Text2Codes(n_codes=c["n_codes"], d_model=c["d_model"], n_heads=c["n_heads"], n_enc=c["n_enc"], n_dec=c["n_dec"],
                                   ff=c["ff"], dropout=c["dropout"], max_codes=c["max_codes"], text_encoder=c["text_encoder"])
-        _load_without_bert(self.model, ck["model"]); self.model.to(DEVICE).eval()
+        _load_without_bert(self.model, ck["model"]); self.model.to(POSE_DEVICE).eval()
         e = self.tokenizer([""], padding="max_length", truncation=True, max_length=B.MAX_TOKENS, return_tensors="np")
         self.EMPTY_IDS, self.EMPTY_ATTN = e["input_ids"][0].astype(np.int64), e["attention_mask"][0].astype(np.int64)
         self.S_GUIDE = 4.0
 
         from sentence_transformers import SentenceTransformer
-        self.st = SentenceTransformer(HF["minilm"], device=DEVICE)
+        self.st = SentenceTransformer(HF["minilm"], device=POSE_DEVICE)
         lck = _load(os.path.join(CK, "length_predictor_v1.pt"))
         self.mu_x, self.sd_x = lck["mu"], lck["sd"]
         self.lenp = nn.Sequential(nn.Linear(len(self.mu_x), 256), nn.GELU(), nn.Dropout(0.2), nn.Linear(256, 1))
-        self.lenp.load_state_dict(lck["model"]); self.lenp.to(DEVICE).eval()
+        self.lenp.load_state_dict(lck["model"]); self.lenp.to(POSE_DEVICE).eval()
 
         lim = json.load(open(os.path.join(BUNDLE, "12_bone_limits.json")))
         self.EDGES = [(b["from"], b["to"], b["name"]) for b in lim["bones"]]
@@ -96,9 +99,9 @@ class Signer:
         bd = L.layout(POINT_IDX)["body"]; self.SH = (bd["l_shoulder"], bd["r_shoulder"])
 
         dck = _load(os.path.join(CK, "depth_lifter_v1.pt"))
-        self.dnet = DepthNet(); self.dnet.load_state_dict(dck["model"]); self.dnet.to(DEVICE).eval()
-        self.ZM = torch.as_tensor(np.asarray(dck["zmean"], np.float32), device=DEVICE)
-        self.ZS = torch.as_tensor(np.asarray(dck["zstd"], np.float32), device=DEVICE)
+        self.dnet = DepthNet(); self.dnet.load_state_dict(dck["model"]); self.dnet.to(POSE_DEVICE).eval()
+        self.ZM = torch.as_tensor(np.asarray(dck["zmean"], np.float32), device=POSE_DEVICE)
+        self.ZS = torch.as_tensor(np.asarray(dck["zstd"], np.float32), device=POSE_DEVICE)
 
         bd = LAY["body"]
         self.ARM_HAND = [bd[k] for k in ["l_shoulder", "r_shoulder", "l_elbow", "r_elbow", "l_wrist", "r_wrist"]] + \
@@ -107,26 +110,26 @@ class Signer:
         self.lock = threading.Lock()
         self.seen = {}
         self.n = 0
-        log(f"BahuSanket models loaded on {DEVICE} [{time.time() - t0:.0f}s]")
+        log(f"BahuSanket models loaded on {POSE_DEVICE} [{time.time() - t0:.0f}s]")
 
     # ---------- notebook 16: length predictor + text model with guidance ----------
     @torch.no_grad()
     def predict_frames(self, tx):
         e = self.st.encode(list(tx), convert_to_numpy=True, show_progress_bar=False).astype(np.float32)
         w = np.array([[len(t.split()), len(t)] for t in tx], np.float32)
-        x = torch.as_tensor((np.concatenate([e, np.log1p(w)], 1) - self.mu_x) / self.sd_x, dtype=torch.float32, device=DEVICE)
+        x = torch.as_tensor((np.concatenate([e, np.log1p(w)], 1) - self.mu_x) / self.sd_x, dtype=torch.float32, device=POSE_DEVICE)
         return np.clip(np.exp(self.lenp(x)[:, 0].cpu().numpy()), 8, 300)
 
     @torch.no_grad()
     def generate_len(self, d, idx, s, lo, hi, temperature=1.0):
         m = self.model; n = len(idx); ch = np.asarray(idx)
-        lo_t = torch.as_tensor(lo, device=DEVICE); hi_t = torch.as_tensor(np.minimum(hi, m.max_codes - 1), device=DEVICE)
-        ids = torch.as_tensor(np.concatenate([d.ids[ch], np.repeat(self.EMPTY_IDS[None], n, 0)]), device=DEVICE)
-        attn = torch.as_tensor(np.concatenate([d.attn[ch], np.repeat(self.EMPTY_ATTN[None], n, 0)]), device=DEVICE)
+        lo_t = torch.as_tensor(lo, device=POSE_DEVICE); hi_t = torch.as_tensor(np.minimum(hi, m.max_codes - 1), device=POSE_DEVICE)
+        ids = torch.as_tensor(np.concatenate([d.ids[ch], np.repeat(self.EMPTY_IDS[None], n, 0)]), device=POSE_DEVICE)
+        attn = torch.as_tensor(np.concatenate([d.attn[ch], np.repeat(self.EMPTY_ATTN[None], n, 0)]), device=POSE_DEVICE)
         mem, mem_pad = m.encode_text(ids, attn)
-        seq = torch.full((2 * n, 1), m.BOS, dtype=torch.long, device=DEVICE)
-        done = torch.zeros(n, dtype=torch.bool, device=DEVICE)
-        lengths = torch.full((n,), m.max_codes, dtype=torch.long, device=DEVICE)
+        seq = torch.full((2 * n, 1), m.BOS, dtype=torch.long, device=POSE_DEVICE)
+        done = torch.zeros(n, dtype=torch.bool, device=POSE_DEVICE)
+        lengths = torch.full((n,), m.max_codes, dtype=torch.long, device=POSE_DEVICE)
         for t in range(m.max_codes):
             lg = m.decode_step(seq, mem, mem_pad)[:, -1].float()
             lg = lg[n:] + s * (lg[:n] - lg[n:])
@@ -169,8 +172,41 @@ class Signer:
         idx = list(range(len(sentences)))
         Pc = np.maximum(2, np.round(self.predict_frames(sentences) / 4)).astype(int)
         base = self.generate_len(d, idx, self.S_GUIDE, np.floor(Pc * 0.8).astype(int), np.ceil(Pc * 1.25).astype(int))
-        full = self.pred.fill(torch.as_tensor(d.ids, device=DEVICE), torch.as_tensor(d.attn, device=DEVICE), base, 1.0)
-        return [self.fix_bones(p) for p in RVQ.codes_to_poses_rvq(self.rvq, full, DEVICE)]
+        full = self.pred.fill(torch.as_tensor(d.ids, device=POSE_DEVICE), torch.as_tensor(d.attn, device=POSE_DEVICE), base, 1.0)
+        return [self.fix_bones(p) for p in RVQ.codes_to_poses_rvq(self.rvq, full, POSE_DEVICE)]
+
+    def plausible(self, p):
+        """Share of frames that look like a person facing the camera: face above the shoulders, shoulder width near 1."""
+        p = np.asarray(p, np.float32)
+        bd = LAY["body"]; ls, rs = p[:, bd["l_shoulder"]], p[:, bd["r_shoulder"]]
+        sw = np.linalg.norm(ls - rs, axis=1)
+        face_y = p[:, LAY["parts"]["face"], 1].mean(1) - (ls[:, 1] + rs[:, 1]) / 2
+        # facing the camera, as in real iSign signing: chin near the middle between the shoulders (real: within +-0.25
+        # shoulder widths in 98% of frames) and the face seen full width (cheek to cheek 0.40-0.60 shoulder widths)
+        f = lambda m: p[:, POINT_IDX.index(33 + m)]
+        swn = np.maximum(sw, 1e-6)
+        chin_dx = np.abs(f(152)[:, 0] - (ls[:, 0] + rs[:, 0]) / 2) / swn
+        face_w = np.abs(f(234)[:, 0] - f(454)[:, 0]) / swn
+        return float(np.mean((face_y < -0.1) & (sw > 0.7) & (sw < 1.4) & (chin_dx < 0.3) & (face_w > 0.32) & (face_w < 0.7)))
+
+    def generate_checked(self, sentences, seed=19, tries=None):
+        """The default pipeline, plus a safety check: the model is sampled, and on some inputs (often very short or unusual
+        sentences) a sample collapses into a body that is not a person. Such pieces are sampled again with a new seed
+        (up to `tries` times) and the most person-like sample is kept. Returns the poses and the number of samples per piece."""
+        tries = tries or MAX_TRIES
+        best = [None] * len(sentences); score = [-1.0] * len(sentences); n = [0] * len(sentences)
+        todo = list(range(len(sentences)))
+        for t in range(tries):
+            out = self.default_pipeline([sentences[k] for k in todo], seed=seed + 1000 * t)
+            for k, p in zip(todo, out):
+                q = self.plausible(p); n[k] += 1
+                if q > score[k]:
+                    best[k], score[k] = p, q
+            todo = [k for k in todo if score[k] < 0.9]
+            if not todo:
+                break
+        self.last_scores = [round(v, 2) for v in score]
+        return best, n
 
     # ---------- notebook 18: depth ----------
     @torch.no_grad()
@@ -180,8 +216,8 @@ class Signer:
         acc = np.zeros((T_, B.N_POINTS)); ws = np.zeros((T_, 1))
         for a in starts:
             e = min(T_, a + win)
-            xy = torch.as_tensor(np.asarray(x, np.float32)[None, a:e, :, :2], device=DEVICE)
-            pr = torch.ones(xy.shape[:3], dtype=torch.bool, device=DEVICE); pad = torch.zeros(xy.shape[:2], dtype=torch.bool, device=DEVICE)
+            xy = torch.as_tensor(np.asarray(x, np.float32)[None, a:e, :, :2], device=POSE_DEVICE)
+            pr = torch.ones(xy.shape[:3], dtype=torch.bool, device=POSE_DEVICE); pad = torch.zeros(xy.shape[:2], dtype=torch.bool, device=POSE_DEVICE)
             z = (self.dnet(xy, pr, pad).float() * self.ZS + self.ZM)[0].cpu().numpy()
             n_ = e - a; tt = np.arange(n_)
             w = np.minimum(np.minimum(tt + 1, n_ - tt), 50).astype(np.float64)[:, None]
@@ -219,9 +255,9 @@ class Signer:
             t0 = time.time()
             sents = split_sentences(text) or [text]
             en = sents if lang == "en" else self.get_translator().translate(sents, lang)
-            segs = [{"src": s, "en": piece} for s, e in zip(sents, en) for piece in chunk_english(e)][:MAX_PIECES]
+            segs = [{"src": s, "en": tidy(piece)} for s, e in zip(sents, en) for piece in chunk_english(e)][:MAX_PIECES]
             t1 = time.time()
-            poses = self.default_pipeline([g["en"] for g in segs])
+            poses, self.last_tries = self.generate_checked([g["en"] for g in segs])
             t2 = time.time()
             variants = {}
             for mth in (JOIN, "cut"):
@@ -236,7 +272,7 @@ class Signer:
                "timing": {"translate": round(t1 - t0, 1), "generate": round(t2 - t1, 1), "depth": round(t3 - t2, 1)}}
         self.seen[(lang, text)] = res
         self.log(f"[{time.strftime('%H:%M:%S')}] {lang}: {text[:60]!r} -> {len(segs)} pieces, {clip['n'] / 25:.1f}s of signing, "
-                 f"took {t3 - t0:.1f}s (translate {t1 - t0:.1f}, generate {t2 - t1:.1f}, depth {t3 - t2:.1f})")
+                 f"samples {self.last_tries}, facing-camera score {self.last_scores}, took {t3 - t0:.1f}s (translate {t1 - t0:.1f}, generate {t2 - t1:.1f}, depth {t3 - t2:.1f})")
         return res
 
     def get_translator(self):
@@ -314,6 +350,7 @@ class Translator:
 LANGS = {"en": "eng_Latn", "hi": "hin_Deva", "kn": "kan_Knda"}
 JOIN = "ease 8"            # chosen in notebook 19
 MAX_PIECES = 12
+MAX_TRIES = int(os.environ.get("BAHU_TRIES", 8))   # safety check: samples per piece at most
 MAX_WORDS = 18             # notebook 19: 90th percentile of training sentence length
 JOINERS = {"and", "but", "because", "so", "while", "which", "who", "where", "when", "after", "before", "or", "then", "although"}
 
@@ -327,6 +364,13 @@ def split_sentences(text):
     text = re.sub(r"\s+", " ", text.strip())
     parts = re.split(r"(?<=[.!?])\s+|(?<=[।॥])\s*", text)
     return [p.strip() for p in parts if p and re.search(r"\w", p)]
+
+
+def tidy(s):
+    """Training sentences look like 'Hi, I need help.': start with a capital and end with . ! or ?"""
+    s = s.strip()
+    s = s[:1].upper() + s[1:]
+    return s if s[-1:] in ".!?" else s + "."
 
 
 def chunk_english(s, max_words=MAX_WORDS):
