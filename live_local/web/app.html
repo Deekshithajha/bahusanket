@@ -571,6 +571,7 @@ function caption(c, t) {
 }
 function select(i) {
   cur = i; frame = 0; acc = 0; segShown = -1;
+  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) { playing = true; $("play").textContent = "Pause"; }
   for (const b of histEl.children) b.setAttribute("aria-current", String(b.dataset.i === String(i)));
   show(true);
 }
@@ -589,15 +590,19 @@ function tick(now) {
     const step = 1 / c.fps;
     if (acc >= step) {
       const n = Math.floor(acc / step); acc -= n * step; frame += n;
-      if (frame >= c.n) frame = 0;
-      show(frame < n);
+      if (frame >= c.n) {                // signed once: stop on the last frame (Replay or Play starts it again)
+        frame = c.n - 1; playing = false; $("play").textContent = "Play"; show(false);
+      } else show(false);
     }
   }
   if (vrm) vrm.update(dt);
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
 }
-$("play").addEventListener("click", () => { playing = !playing; $("play").textContent = playing ? "Pause" : "Play"; });
+$("play").addEventListener("click", () => {
+  if (!playing && cur >= 0 && frame >= items[cur].clip.n - 1) { frame = 0; acc = 0; segShown = -1; show(true); }   // at the end: start again
+  playing = !playing; $("play").textContent = playing ? "Pause" : "Play";
+});
 $("replay").addEventListener("click", () => { frame = 0; acc = 0; segShown = -1; playing = true; $("play").textContent = "Pause"; show(true); });
 $("speed").addEventListener("change", () => { speed = Number($("speed").value); });
 function setView(v) {
